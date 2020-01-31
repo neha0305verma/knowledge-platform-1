@@ -95,9 +95,9 @@ public class ContentActor extends BaseActor {
 
     private Future<Response> copy(Request request) throws Exception {
         RequestUtils.restrictProperties(request);
-            List<String> externalPropList = Platform.config.hasPath("learning.content.copy.external_prop_list")
-                    ? Platform.config.getStringList("learning.content.copy.external_prop_list") : null;
-            request.getRequest().put("fields", externalPropList);
+        List<String> externalPropList = Platform.config.hasPath("learning.content.copy.external_prop_list")
+                ? Platform.config.getStringList("learning.content.copy.external_prop_list") : null;
+        request.getRequest().put("fields", externalPropList);
         return DataNode.read(request, getContext().dispatcher()).map(new Mapper<Node, Response>() {
             @Override
             public Response apply(Node existingNode) {
@@ -163,7 +163,7 @@ public class ContentActor extends BaseActor {
     private Map<String, String> prepareCopyNode(Request request, Node existingNode) throws Exception{
         Node validatedExistingNode = CopyOperation.validateCopyContentRequest(existingNode, (Map<String, Object>) request.getRequest(), (String) request.getRequest().get("mode"));
         existingNode.setGraphId((String) request.getContext().get("graph_id"));
-        Node copyNode = CopyOperation.copy(validatedExistingNode, (Map<String, Object>) request.getRequest(), (String) request.getRequest().get("mode"));
+        Node copyNode = CopyOperation.prepareCopyNode(validatedExistingNode, (Map<String, Object>) request.getRequest(), (String) request.getRequest().get("mode"));
         request.getRequest().clear();
         ObjectMapper mapper = new ObjectMapper();
         Map<String, Object> copiedMap = mapper.convertValue(copyNode.getMetadata(), new TypeReference<Map<String,Object>>(){});
@@ -188,14 +188,14 @@ public class ContentActor extends BaseActor {
             }
         }, getContext().dispatcher());
         copiedNode.onComplete(new OnComplete<Node>(){
-            public void onComplete(Throwable t, Node result) throws Exception{
-                if(equalsIgnoreCase((String) existingNode.getMetadata().get("mimeType"), "application/vnd.ekstep.content-collection")){
+            public void onComplete(Throwable t, Node copiedNode) throws Exception {
+                if (equalsIgnoreCase((String) existingNode.getMetadata().get("mimeType"), "application/vnd.ekstep.content-collection")) {
                     // Generating update hierarchy with copied parent content and calling
                     // update hierarchy.
-                    Future<Response> response = HierarchyManager.getHierarchy(request, getContext().dispatcher());
-                    response.onComplete(new OnComplete<Response>() {
-                        public void onComplete(Throwable t, Response response) {
-                            CopyOperation.prepareHierarchy(response);
+                    HierarchyManager.getHierarchy(request, getContext().dispatcher()).map(new Mapper<Response, Response>() {
+                        @Override
+                        public Response apply(Response response) {
+                            CopyOperation.prepareUpdateHierarchy(response);
                         }
                     }, getContext().dispatcher());
                 }
