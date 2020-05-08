@@ -9,7 +9,7 @@ import javax.inject.Inject
 import org.apache.commons.lang3.StringUtils
 import org.sunbird.actor.core.BaseActor
 import org.sunbird.cache.impl.RedisCache
-import org.sunbird.content.util.{CopyManager, DiscardManager, FlagManager, RetireManager, AcceptFlagManager}
+import org.sunbird.content.util.{AcceptFlagManager, CopyManager, DiscardManager, FlagManager, RetireManager}
 import org.sunbird.cloudstore.StorageService
 import org.sunbird.common.{ContentParams, Platform, Slug}
 import org.sunbird.common.dto.{Request, Response, ResponseHandler}
@@ -133,11 +133,7 @@ class ContentActor @Inject() (implicit oec: OntologyEngineContext, ss: StorageSe
 	}
 
 	def curriculumCourse(request: Request): Future[Response] = {
-		if (StringUtils.isEmpty(request.get("channel").asInstanceOf[String]))
-			throw new ClientException("ERR_CHANNEL_BLANK_OBJECT", "Channel can not be blank or null")
-		if(StringUtils.isBlank(request.get("source").asInstanceOf[String]))
-			throw new ClientException("ERR_SOURCE_ID_REQUIRED", "Please Provide Source ID")
-		request.put("identifier", request.get("source"))
+		validateCurriculumRequest(request)
 		DataNode.read(request).map(node => {
 			if (!StringUtils.equals(node.getMetadata.get("contentType").asInstanceOf[String], "TextBook"))
 				throw new ClientException("ERROR_CREATING_CURRICULUM_COURSE", "Please Provide Valid Source ID")
@@ -191,4 +187,15 @@ class ContentActor @Inject() (implicit oec: OntologyEngineContext, ss: StorageSe
 			throw new ClientException("ERR_CONTENT_INVALID_FILE_PATH", "Please provide valid filepath of character length 100 or Less ")
 	}
 
+	private def validateCurriculumRequest(request: Request): Unit ={
+		if (StringUtils.isEmpty(request.get("channel").asInstanceOf[String]))
+			throw new ClientException("ERR_CHANNEL_BLANK_OBJECT", "Channel can not be blank or null")
+		if(StringUtils.isBlank(request.get("source").asInstanceOf[String]))
+			throw new ClientException("ERR_SOURCE_ID_REQUIRED", "Please Provide Source ID")
+		request.put("identifier", request.get("source"))
+		request.put("createdBy", "username_1")
+		request.put("createdFor", new util.ArrayList[String](){{add("NCF2")}})
+		request.put("framework", "NCF2")
+		request.put("organisation", new util.ArrayList[String](){{add("NCF2")}})
+	}
 }
