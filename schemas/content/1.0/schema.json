@@ -451,7 +451,8 @@
                 "PracticeResource",
                 "eTextBook",
                 "OnboardingResource",
-                "CurriculumCourse"
+                "CurriculumCourse",
+                "CollectionUnit"
             ]
         },
         "resourceType": {
