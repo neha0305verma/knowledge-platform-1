@@ -46,3 +46,6 @@ POST     /channel/v3/create                   controllers.v3.ChannelController.c
 PATCH     /channel/v3/update/:identifier      controllers.v3.ChannelController.update(identifier: String)
 GET       /channel/v3/read/:identifier        controllers.v3.ChannelController.read(identifier: String)
 DELETE     /channel/v3/retire/:identifier    controllers.v3.ChannelController.retire(identifier: String)
+
+#CurriculumCourse APIs
+POST   /curriculumcourse/v3/create      controllers.v3.ContentController.createCurriculumCourse

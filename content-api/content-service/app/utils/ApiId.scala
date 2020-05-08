@@ -36,6 +36,7 @@ object ApiId {
 	val LIST_CHANNEL = "api.channel.list"
 	val RETIRE_CHANNEL = "api.channel.retire"
 
-
+	//CurriculumCourse
+	val CREATE_CURRICULUM_COURSE = "api.curriculum.course.create"
 
 }

@@ -39,6 +39,7 @@ class ContentActor @Inject() (implicit oec: OntologyEngineContext, ss: StorageSe
 			case "discardContent" => discard(request)
 			case "flagContent" => flag(request)
 			case "acceptFlag" => acceptFlag(request)
+			case "createCurriculumCourse" => curriculumCourse(request)
 			case _ => ERROR(request.getOperation)
 		}
 	}
@@ -129,6 +130,20 @@ class ContentActor @Inject() (implicit oec: OntologyEngineContext, ss: StorageSe
 
 	def acceptFlag(request: Request): Future[Response] = {
 		AcceptFlagManager.acceptFlag(request)
+	}
+
+	def curriculumCourse(request: Request): Future[Response] = {
+		if (StringUtils.isEmpty(request.get("channel").asInstanceOf[String]))
+			throw new ClientException("ERR_CHANNEL_BLANK_OBJECT", "Channel can not be blank or null")
+		if(StringUtils.isBlank(request.get("source").asInstanceOf[String]))
+			throw new ClientException("ERR_SOURCE_ID_REQUIRED", "Please Provide Source ID")
+		request.put("identifier", request.get("source"))
+		DataNode.read(request).map(node => {
+			if (!StringUtils.equals(node.getMetadata.get("contentType").asInstanceOf[String], "TextBook"))
+				throw new ClientException("ERROR_CREATING_CURRICULUM_COURSE", "Please Provide Valid Source ID")
+			request.getContext.put("copyScheme", Map("TextBook" -> "CurriculumCourse",  "TextBookUnit" -> "CollectionUnit"))
+			copy(request)
+		}).flatMap(f => f)
 	}
 
 	def populateDefaultersForCreation(request: Request) = {

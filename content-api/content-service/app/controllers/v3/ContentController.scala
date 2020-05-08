@@ -238,4 +238,16 @@ class ContentController @Inject()(@Named(ActorNames.CONTENT_ACTOR) contentActor:
         setRequestContext(contentRequest, version, objectType, schemaName)
         getResult(ApiId.UPLOAD_PRE_SIGNED_CONTENT, contentActor, contentRequest)
     }
+
+    def createCurriculumCourse() = Action.async { implicit request =>
+        val headers = commonHeaders()
+        val body = requestBody()
+        val content = body.getOrElse("content", new java.util.HashMap()).asInstanceOf[java.util.Map[String, Object]]
+        content.putAll(headers)
+        val source = body.getOrElse("source", "")
+        content.put("source", source)
+        val contentRequest = getRequest(content, headers, "createCurriculumCourse")
+        setRequestContext(contentRequest, version, objectType, schemaName)
+        getResult(ApiId.CREATE_CURRICULUM_COURSE, contentActor, contentRequest)
+    }
 }
