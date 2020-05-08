@@ -95,7 +95,7 @@ object CopyManager {
     }
 
     def updateHierarchy(request: Request, node: Node, originNode: Node, originHierarchy: util.Map[String, AnyRef], copyType:String)(implicit ec: ExecutionContext, oec: OntologyEngineContext): Future[Node] = {
-        val updateHierarchyRequest = prepareHierarchyRequest(originHierarchy, originNode, node, copyType)
+        val updateHierarchyRequest = prepareHierarchyRequest(originHierarchy, originNode, node, copyType, request)
         val hierarchyRequest = new Request(request)
         hierarchyRequest.putAll(updateHierarchyRequest)
         hierarchyRequest.getContext.put("schemaName", collSchemaName)
@@ -149,6 +149,8 @@ object CopyManager {
         metadata.put(ContentConstants.IDENTIFIER, Identifier.getIdentifier(request.getContext.get("graph_id").asInstanceOf[String], Identifier.getUniqueIdFromTimestamp))
         if (MapUtils.isNotEmpty(originData))
             metadata.put(ContentConstants.ORIGIN_DATA, originData)
+        val contentType = metadata.get(ContentConstants.CONTENT_TYPE).asInstanceOf[String]
+        metadata.put(ContentConstants.CONTENT_TYPE, request.getContext.getOrDefault(ContentConstants.COPY_SCHEME, Map()).asInstanceOf[Map[String,AnyRef]].getOrElse(contentType, contentType))
         val req = new Request(request)
         req.setRequest(metadata)
         if (StringUtils.equalsIgnoreCase("application/vnd.ekstep.ecml-archive", node.getMetadata.get("mimeType").asInstanceOf[String])) {
@@ -210,7 +212,7 @@ object CopyManager {
 
     protected def isInternalUrl(url: String): Boolean = url.contains(ss.getContainerName())
 
-    def prepareHierarchyRequest(originHierarchy: util.Map[String, AnyRef], originNode: Node, node: Node, copyType: String):util.HashMap[String, AnyRef] = {
+    def prepareHierarchyRequest(originHierarchy: util.Map[String, AnyRef], originNode: Node, node: Node, copyType: String, request: Request):util.HashMap[String, AnyRef] = {
         val children:util.List[util.Map[String, AnyRef]] = originHierarchy.get("children").asInstanceOf[util.List[util.Map[String, AnyRef]]]
         if(null != children && !children.isEmpty) {
             val nodesModified = new util.HashMap[String, AnyRef]()
@@ -220,7 +222,7 @@ object CopyManager {
                 put(ContentConstants.ROOT, true.asInstanceOf[AnyRef])
                 put(ContentConstants.CONTENT_TYPE, node.getMetadata.get(ContentConstants.CONTENT_TYPE))
             }})
-            populateHierarchyRequest(children, nodesModified, hierarchy, node.getIdentifier, copyType)
+            populateHierarchyRequest(children, nodesModified, hierarchy, node.getIdentifier, copyType, request)
             new util.HashMap[String, AnyRef](){{
                 put(ContentConstants.NODES_MODIFIED, nodesModified)
                 put(ContentConstants.HIERARCHY, hierarchy)
@@ -228,14 +230,15 @@ object CopyManager {
         } else new util.HashMap[String, AnyRef]()
     }
 
-    def populateHierarchyRequest(children: util.List[util.Map[String, AnyRef]], nodesModified: util.HashMap[String, AnyRef], hierarchy: util.HashMap[String, AnyRef], parentId: String, copyType: String): Unit = {
+    def populateHierarchyRequest(children: util.List[util.Map[String, AnyRef]], nodesModified: util.HashMap[String, AnyRef], hierarchy: util.HashMap[String, AnyRef], parentId: String, copyType: String, request: Request): Unit = {
         if (null != children && !children.isEmpty) {
             children.asScala.toList.foreach(child => {
                 val id = if ("Parent".equalsIgnoreCase(child.get(ContentConstants.VISIBILITY).asInstanceOf[String])) {
                         val identifier = UUID.randomUUID().toString
+                    val contentType = child.get(ContentConstants.CONTENT_TYPE).asInstanceOf[String]
+                    child.put(ContentConstants.CONTENT_TYPE, request.getContext.getOrDefault(ContentConstants.COPY_SCHEME, Map()).asInstanceOf[Map[String,AnyRef]].getOrElse(contentType, contentType))
                         nodesModified.put(identifier, new util.HashMap[String, AnyRef]() {{
                                 put(ContentConstants.METADATA,  cleanUpCopiedData(new util.HashMap[String, AnyRef]() {{
-
                                     putAll(child)
                                     put(ContentConstants.CHILDREN, new util.ArrayList())
                                     internalHierarchyProps.map(key => remove(key))
@@ -253,7 +256,7 @@ object CopyManager {
                         put(ContentConstants.CONTENT_TYPE, child.get(ContentConstants.CONTENT_TYPE))
                     }})
                 hierarchy.get(parentId).asInstanceOf[util.Map[String, AnyRef]].get(ContentConstants.CHILDREN).asInstanceOf[util.List[String]].add(id)
-                populateHierarchyRequest(child.get(ContentConstants.CHILDREN).asInstanceOf[util.List[util.Map[String, AnyRef]]], nodesModified, hierarchy, id, copyType)
+                populateHierarchyRequest(child.get(ContentConstants.CHILDREN).asInstanceOf[util.List[util.Map[String, AnyRef]]], nodesModified, hierarchy, id, copyType, request)
             })
         }
     }
