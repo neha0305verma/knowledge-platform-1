@@ -193,9 +193,9 @@ class ContentActor @Inject() (implicit oec: OntologyEngineContext, ss: StorageSe
 		if(StringUtils.isBlank(request.get("source").asInstanceOf[String]))
 			throw new ClientException("ERR_SOURCE_ID_REQUIRED", "Please Provide Source ID")
 		request.put("identifier", request.get("source"))
-		request.put("createdBy", "username_1")
-		request.put("createdFor", new util.ArrayList[String](){{add("NCF")}})
-		request.put("framework", "NCF")
-		request.put("organisation", new util.ArrayList[String](){{add("NCF")}})
+		request.put("createdBy", request.getRequest.getOrDefault("createdBy", ""))
+		request.put("createdFor", request.getRequest.getOrDefault("createdFor", ""))
+		request.put("framework", request.getRequest.getOrDefault("framework", ""))
+		request.put("organisation", request.getRequest.getOrDefault("organisation", ""))
 	}
 }
